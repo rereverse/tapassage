@@ -19,19 +19,35 @@
            (xf result (/ @sum period))
            result))))))
 
-(defn ema [period]
+(defn- private-ema [period]
   (fn [xf]
     (let [prev-ema (volatile! [])
           alpha (/ 2 (+ period 1))]
       (fn
         ([] (xf))
         ([result] (xf result))
-        ([result input]
-         (let [ema-f (fn [p] (->> p (- input) (* alpha) (+ p)))
-               step (fn [new-ema] (vreset! prev-ema new-ema) (xf result new-ema))]
+        ([result in]
+         (let [input (::x in)
+               ema-f (fn [p] (->> p (- input) (* alpha) (+ p)))
+               step (fn [new-ema]
+                      (vreset! prev-ema new-ema)
+                      (xf result (assoc in ::x new-ema)))]
            (if (vector? @prev-ema)
              (do (vswap! prev-ema conj input)
                  (if (= (count @prev-ema) period)
                    (step (/ (apply + @prev-ema) period))
                    result))
              (step (ema-f @prev-ema)))))))))
+
+(defn ema [period]
+  (comp
+    (map #(hash-map ::x %))
+    (private-ema period)
+    (map ::x)))
+
+(defn dema [period]
+  (comp
+    (ema period)
+    (map (fn [x] {::two-ema (* 2 x), ::x x}))
+    (private-ema period)
+    (map (fn [m] (- (::two-ema m) (::x m))))))

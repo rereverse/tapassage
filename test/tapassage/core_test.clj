@@ -37,3 +37,16 @@
       (is (= ret-code RetCode/Success))
       (is (= (count tp-ema) (count ta-ema)))
       (is (seq-approx= tp-ema ta-ema)))))
+
+(deftest test-dema
+  (testing "DEMA"
+    (let [out-start-idx (new MInteger)
+          out-len (new MInteger)
+          output (double-array total-periods)
+          ret-code (.. (new Core) (dema 0 (dec total-periods) input ma-period
+                                        out-start-idx out-len output))
+          tp-dema (sequence (tp/dema ma-period) input)
+          ta-dema (take (.-value out-len) (seq output))]
+      (is (= ret-code RetCode/Success))
+      (is (= (count tp-dema) (count ta-dema)))
+      (is (seq-approx= tp-dema ta-dema)))))
