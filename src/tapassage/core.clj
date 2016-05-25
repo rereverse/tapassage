@@ -19,7 +19,7 @@
            (xf result (/ @sum period))
            result))))))
 
-(defn- private-ema [period]
+(defn- ema-comp [period]
   (fn [xf]
     (let [prev-ema (volatile! [])
           alpha (/ 2 (+ period 1))]
@@ -42,12 +42,21 @@
 (defn ema [period]
   (comp
     (map #(hash-map ::x %))
-    (private-ema period)
+    (ema-comp period)
     (map ::x)))
 
 (defn dema [period]
   (comp
     (ema period)
-    (map (fn [x] {::two-ema (* 2 x), ::x x}))
-    (private-ema period)
-    (map (fn [m] (- (::two-ema m) (::x m))))))
+    (map (fn [x] {::2ema (* 2 x), ::x x}))
+    (ema-comp period)
+    (map (fn [m] (- (::2ema m) (::x m))))))
+
+(defn tema [period]
+  (comp
+    (ema period)
+    (map (fn [x] {::3ema (* 3 x), ::x x}))
+    (ema-comp period)
+    (map (fn [m] (assoc m ::3emaema (* 3 (::x m)))))
+    (ema-comp period)
+    (map (fn [m] (+ (::x m) (- (::3ema m) (::3emaema m)))))))
