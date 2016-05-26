@@ -33,10 +33,11 @@
                       (vreset! prev-ema new-ema)
                       (xf result (assoc in ::x new-ema)))]
            (if (vector? @prev-ema)
-             (do (vswap! prev-ema conj input)
-                 (if (= (count @prev-ema) period)
-                   (step (/ (apply + @prev-ema) period))
-                   result))
+             (do
+               (vswap! prev-ema conj input)
+               (if (= (count @prev-ema) period)
+                 (step (/ (apply + @prev-ema) period))
+                 result))
              (step (ema-f @prev-ema)))))))))
 
 (defn ema [period]
@@ -60,3 +61,21 @@
     (map (fn [m] (assoc m ::3emaema (* 3 (::x m)))))
     (ema-comp period)
     (map (fn [m] (+ (::x m) (- (::3ema m) (::3emaema m)))))))
+
+(defn wma [period]
+  (let [triangles (range 1 (inc period))
+        denominator (double (apply + triangles))
+        weights (map #(/ % denominator) triangles)]
+    (fn [xf]
+      (let [values (volatile! PersistentQueue/EMPTY)]
+        (fn
+          ([] (xf))
+          ([result] (xf result))
+          ([result input]
+           (vswap! values conj input)
+           (if (< (count @values) period)
+             result
+             (do
+               (when (> (count @values) period)
+                 (vswap! values pop))
+               (xf result (apply + (map * weights @values)))))))))))

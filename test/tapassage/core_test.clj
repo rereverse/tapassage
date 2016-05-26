@@ -66,4 +66,13 @@
 
 (deftest test-wma
   (testing "WMA"
-    ()))
+    (let [out-start-idx (new MInteger)
+          out-len (new MInteger)
+          output (double-array total-periods)
+          ret-code (.. (new Core) (wma 0 (dec total-periods) input ma-period
+                                       out-start-idx out-len output))
+          tp-wma (sequence (tp/wma ma-period) input)
+          ta-wma (take (.-value out-len) (seq output))]
+      (is (= ret-code RetCode/Success))
+      (is (= (count tp-wma) (count ta-wma)))
+      (is (= (seq-approx= tp-wma ta-wma))))))
