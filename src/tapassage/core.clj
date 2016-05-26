@@ -2,9 +2,10 @@
   (:import (clojure.lang PersistentQueue)))
 
 
-(defn- hcomp [& xfs]
+(defn- xfhcomp [& xfs]
   (fn [xf]
-    (let [ts (map #(% (fn [_ input] input)) xfs)]
+    (let [ixf (fn [_ input] input)
+          ts (map #(% ixf) xfs)]
       (fn
         ([] (xf))
         ([result] (xf result))
@@ -54,27 +55,22 @@
 (defn dema [period]
   (comp
     (ema period)
-    (hcomp
+    (xfhcomp
       (map (partial * 2))
       (ema period))
     (map (partial apply -))))
 
-;(defn tema [period]
-;  (comp
-;    (ema period)
-;    (hcomp
-;      (map identity)
-;      (ema period))
-;    (hcomp)))
-
-;(defn tema [period]
-;  (comp
-;    (ema period)
-;    (map (fn [x] {::3ema (* 3 x), ::x x}))
-;    (ema-comp period)
-;    (map (fn [m] (assoc m ::3emaema (* 3 (::x m)))))
-;    (ema-comp period)
-;    (map (fn [m] (+ (::x m) (- (::3ema m) (::3emaema m)))))))
+(defn tema [period]
+  (comp
+    (ema period)
+    (xfhcomp
+      (map identity)
+      (ema period))
+    (xfhcomp
+      (comp (map first) (map (partial * 3)))
+      (comp (map second) (map (partial * 3)))
+      (comp (map second) (ema period)))
+    (map (fn [[ema ema2 ema3]] (+ ema3 (- ema ema2))))))
 
 (defn wma [period]
   (let [triangles (range 1 (inc period))
