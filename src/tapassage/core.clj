@@ -2,6 +2,21 @@
   (:import (clojure.lang PersistentQueue)))
 
 
+(defn comp-horizon [xfa xfb]
+  (fn [xf]
+    (let [pass-through-xf (fn [result input] input)
+          atrans (xfa pass-through-xf)
+          btrans (xfb pass-through-xf)]
+      (fn
+        ([] (xf))
+        ([result] (xf result))
+        ([result input]
+         (let [aresult (atrans nil input)
+               bresult (btrans nil input)]
+           (if (and (some? aresult) (some? bresult))
+             (xf result [aresult bresult])
+             result)))))))
+
 (defn sma [period]
   (fn [xf]
     (let [values (volatile! PersistentQueue/EMPTY)
