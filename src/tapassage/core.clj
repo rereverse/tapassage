@@ -2,19 +2,16 @@
   (:import (clojure.lang PersistentQueue)))
 
 
-(defn- hcomp [xfa xfb]
+(defn- hcomp [& xfs]
   (fn [xf]
-    (let [ixf (fn [_ input] input)
-          atrans (xfa ixf)
-          btrans (xfb ixf)]
+    (let [ts (map #(% (fn [_ input] input)) xfs)]
       (fn
         ([] (xf))
         ([result] (xf result))
         ([result input]
-         (let [aresult (atrans nil input)
-               bresult (btrans nil input)]
-           (if (and (some? aresult) (some? bresult))
-             (xf result [aresult bresult])
+         (let [rs (map #(% nil input) ts)]
+           (if (every? some? rs)
+             (xf result rs)
              result)))))))
 
 (defn sma [period]
