@@ -2,11 +2,11 @@
   (:import (clojure.lang PersistentQueue)))
 
 
-(defn comph [xfa xfb]
+(defn- hcomp [xfa xfb]
   (fn [xf]
-    (let [pass-through-xf (fn [result input] input)
-          atrans (xfa pass-through-xf)
-          btrans (xfb pass-through-xf)]
+    (let [ixf (fn [_ input] input)
+          atrans (xfa ixf)
+          btrans (xfb ixf)]
       (fn
         ([] (xf))
         ([result] (xf result))
@@ -34,19 +34,18 @@
            (xf result (/ @sum period))
            result))))))
 
-(defn- ema-comp [period]
+(defn ema [period]
   (fn [xf]
     (let [prev-ema (volatile! [])
           alpha (/ 2 (+ period 1))]
       (fn
         ([] (xf))
         ([result] (xf result))
-        ([result in]
-         (let [input (::x in)
-               ema-f (fn [p] (->> p (- input) (* alpha) (+ p)))
+        ([result input]
+         (let [ema-f (fn [p] (->> p (- input) (* alpha) (+ p)))
                step (fn [new-ema]
                       (vreset! prev-ema new-ema)
-                      (xf result (assoc in ::x new-ema)))]
+                      (xf result new-ema))]
            (if (vector? @prev-ema)
              (do
                (vswap! prev-ema conj input)
@@ -55,27 +54,30 @@
                  result))
              (step (ema-f @prev-ema)))))))))
 
-(defn ema [period]
-  (comp
-    (map #(hash-map ::x %))
-    (ema-comp period)
-    (map ::x)))
-
 (defn dema [period]
   (comp
     (ema period)
-    (map (fn [x] {::2ema (* 2 x), ::x x}))
-    (ema-comp period)
-    (map (fn [m] (- (::2ema m) (::x m))))))
+    (hcomp
+      (map (partial * 2))
+      (ema period))
+    (map (partial apply -))))
 
-(defn tema [period]
-  (comp
-    (ema period)
-    (map (fn [x] {::3ema (* 3 x), ::x x}))
-    (ema-comp period)
-    (map (fn [m] (assoc m ::3emaema (* 3 (::x m)))))
-    (ema-comp period)
-    (map (fn [m] (+ (::x m) (- (::3ema m) (::3emaema m)))))))
+;(defn tema [period]
+;  (comp
+;    (ema period)
+;    (hcomp
+;      (map identity)
+;      (ema period))
+;    (hcomp)))
+
+;(defn tema [period]
+;  (comp
+;    (ema period)
+;    (map (fn [x] {::3ema (* 3 x), ::x x}))
+;    (ema-comp period)
+;    (map (fn [m] (assoc m ::3emaema (* 3 (::x m)))))
+;    (ema-comp period)
+;    (map (fn [m] (+ (::x m) (- (::3ema m) (::3emaema m)))))))
 
 (defn wma [period]
   (let [triangles (range 1 (inc period))

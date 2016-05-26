@@ -51,18 +51,18 @@
       (is (= (count tp-dema) (count ta-dema)))
       (is (seq-approx= tp-dema ta-dema)))))
 
-(deftest test-tema
-  (testing "TEMA"
-    (let [out-start-idx (new MInteger)
-          out-len (new MInteger)
-          output (double-array total-periods)
-          ret-code (.. (new Core) (tema 0 (dec total-periods) input ma-period
-                                        out-start-idx out-len output))
-          tp-tema (sequence (tp/tema ma-period) input)
-          ta-tema (take (.-value out-len) (seq output))]
-      (is (= ret-code RetCode/Success))
-      (is (= (count tp-tema) (count ta-tema)))
-      (is (= (seq-approx= tp-tema ta-tema))))))
+;(deftest test-tema
+;  (testing "TEMA"
+;    (let [out-start-idx (new MInteger)
+;          out-len (new MInteger)
+;          output (double-array total-periods)
+;          ret-code (.. (new Core) (tema 0 (dec total-periods) input ma-period
+;                                        out-start-idx out-len output))
+;          tp-tema (sequence (tp/tema ma-period) input)
+;          ta-tema (take (.-value out-len) (seq output))]
+;      (is (= ret-code RetCode/Success))
+;      (is (= (count tp-tema) (count ta-tema)))
+;      (is (= (seq-approx= tp-tema ta-tema))))))
 
 (deftest test-wma
   (testing "WMA"
