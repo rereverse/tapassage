@@ -4,8 +4,8 @@
             [clojure.algo.generic.math-functions :refer [approx=]])
   (:import [com.tictactec.ta.lib Core MInteger RetCode]))
 
-(def ^:private total-periods 50)
-(def ^:private ma-period 5)
+(def ^:private total-periods 100)
+(def ^:private ma-period 13)
 (def ^:private input (double-array (repeatedly total-periods rand)))
 (def ^:private epsilon 1e-15)
 
