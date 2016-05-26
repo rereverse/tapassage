@@ -2,7 +2,7 @@
   (:import (clojure.lang PersistentQueue)))
 
 
-(defn comp-horizon [xfa xfb]
+(defn comph [xfa xfb]
   (fn [xf]
     (let [pass-through-xf (fn [result input] input)
           atrans (xfa pass-through-xf)
