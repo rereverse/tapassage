@@ -14,44 +14,45 @@
              (xf result rs)
              result)))))))
 
-;; MOVING AVERAGES
+(defmacro make-transducer
+  ([trans-fn] `(make-transducer [] ~trans-fn))
+  ([bindings trans-fn]
+   `(fn [xf#]
+      (let ~bindings
+        (fn
+          ([] (xf#))
+          ([result#] (xf# result#))
+          ([result# input#]
+           (if-let [r# (~trans-fn input#)]
+             (xf# result# r#)
+             result#))))))
+  {:private true})
 
 (defn sma [p]
-  (fn [xf]
-    (let [values (volatile! PersistentQueue/EMPTY)
-          sum (volatile! 0.0)]
-      (fn
-        ([] (xf))
-        ([result] (xf result))
-        ([result input]
-         (vswap! sum + input)
-         (vswap! values conj input)
-         (when (> (count @values) p)
-           (vswap! sum - (first @values))
-           (vswap! values pop))
-         (if (= (count @values) p)
-           (xf result (/ @sum p))
-           result))))))
+  (make-transducer
+    [values (volatile! PersistentQueue/EMPTY)
+     sum (volatile! 0.0)]
+    (fn [x]
+      (vswap! sum + x)
+      (vswap! values conj x)
+      (when (> (count @values) p)
+        (vswap! sum - (first @values))
+        (vswap! values pop))
+      (when (= (count @values) p)
+        (/ @sum p)))))
 
 (defn ema [p]
-  (fn [xf]
-    (let [prev-ema (volatile! [])
-          alpha (/ 2 (+ p 1))]
-      (fn
-        ([] (xf))
-        ([result] (xf result))
-        ([result input]
-         (let [ema-f (fn [p] (->> p (- input) (* alpha) (+ p)))
-               step (fn [new-ema]
-                      (vreset! prev-ema new-ema)
-                      (xf result new-ema))]
-           (if (vector? @prev-ema)
-             (do
-               (vswap! prev-ema conj input)
-               (if (= (count @prev-ema) p)
-                 (step (/ (apply + @prev-ema) p))
-                 result))
-             (step (ema-f @prev-ema)))))))))
+  (make-transducer
+    [prev-ema (volatile! [])
+     alpha (/ 2 (+ p 1))
+     ema-f (fn [x] (->> @prev-ema (- x) (* alpha) (+ @prev-ema)))]
+    (fn [x]
+      (if (vector? @prev-ema)
+        (do
+          (vswap! prev-ema conj x)
+          (when (= (count @prev-ema) p)
+            (vreset! prev-ema (/ (apply + @prev-ema) p))))
+        (vreset! prev-ema (ema-f x))))))
 
 (defn dema [p]
   (comp
@@ -77,32 +78,22 @@
   (let [triangles (range 1 (inc p))
         denominator (double (apply + triangles))
         weights (map #(/ % denominator) triangles)]
-    (fn [xf]
-      (let [values (volatile! PersistentQueue/EMPTY)]
-        (fn
-          ([] (xf))
-          ([result] (xf result))
-          ([result input]
-           (vswap! values conj input)
-           (if (< (count @values) p)
-             result
-             (do
-               (when (> (count @values) p)
-                 (vswap! values pop))
-               (xf result (apply + (map * weights @values)))))))))))
-
-;; OSCILATORS
+    (make-transducer
+      [values (volatile! PersistentQueue/EMPTY)]
+      (fn [x]
+        (vswap! values conj x)
+        (when (>= (count @values) p)
+          (when (> (count @values) p)
+            (vswap! values pop))
+          (apply + (map * weights @values)))))))
 
 (defn roc [p]
-  (fn [xf]
-    (let [values (volatile! PersistentQueue/EMPTY)]
-      (fn
-        ([] (xf))
-        ([result] (xf result))
-        ([result input]
-         (vswap! values conj input)
-         (if (<= (count @values) p)
-           result
-           (let [prev (first @values)]
-             (vswap! values pop)
-             (xf result (* 100 (dec (/ input prev)))))))))))
+  (make-transducer
+    [values (volatile! PersistentQueue/EMPTY)]
+    (fn [x]
+      (vswap! values conj x)
+      (when (> (count @values) p)
+        (let [prev (first @values)]
+          (vswap! values pop)
+          (* 100 (dec (/ x prev))))))))
+
