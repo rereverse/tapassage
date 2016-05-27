@@ -14,8 +14,8 @@
              (xf result rs)
              result)))))))
 
-(defmacro make-transducer
-  ([trans-fn] `(make-transducer [] ~trans-fn))
+(defmacro indicator
+  ([trans-fn] `(indicator [] ~trans-fn))
   ([bindings trans-fn]
    `(fn [xf#]
       (let ~bindings
@@ -29,7 +29,7 @@
   {:private true})
 
 (defn sma [p]
-  (make-transducer
+  (indicator
     [values (volatile! PersistentQueue/EMPTY)
      sum (volatile! 0.0)]
     (fn [x]
@@ -42,7 +42,7 @@
         (/ @sum p)))))
 
 (defn ema [p]
-  (make-transducer
+  (indicator
     [prev-ema (volatile! [])
      alpha (/ 2 (+ p 1))
      ema-f (fn [x] (->> @prev-ema (- x) (* alpha) (+ @prev-ema)))]
@@ -78,7 +78,7 @@
   (let [triangles (range 1 (inc p))
         denominator (double (apply + triangles))
         weights (map #(/ % denominator) triangles)]
-    (make-transducer
+    (indicator
       [values (volatile! PersistentQueue/EMPTY)]
       (fn [x]
         (vswap! values conj x)
@@ -88,7 +88,7 @@
           (apply + (map * weights @values)))))))
 
 (defn roc [p]
-  (make-transducer
+  (indicator
     [values (volatile! PersistentQueue/EMPTY)]
     (fn [x]
       (vswap! values conj x)
@@ -96,4 +96,14 @@
         (let [prev (first @values)]
           (vswap! values pop)
           (* 100 (dec (/ x prev))))))))
+
+(defn roc-p [p]
+  (indicator
+    [values (volatile! PersistentQueue/EMPTY)]
+    (fn [x]
+      (vswap! values conj x)
+      (when (> (count @values) p)
+        (let [prev (first @values)]
+          (vswap! values pop)
+          (/ (- x prev) prev))))))
 
