@@ -35,4 +35,6 @@
 (test-indicator test-wma wma)
 (test-indicator test-roc roc)
 (test-indicator test-rocp roc-p rocP)
+(test-indicator test-rocr roc-r rocR)
+(test-indicator test-rocr100 roc-r-100 rocR100)
 (test-indicator test-trix trix)

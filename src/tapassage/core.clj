@@ -107,6 +107,21 @@
           (vswap! values pop)
           (/ (- x prev) prev))))))
 
+(defn roc-r [p]
+  (indicator
+    [values (volatile! PersistentQueue/EMPTY)]
+    (fn [x]
+      (vswap! values conj x)
+      (when (> (count @values) p)
+        (let [prev (first @values)]
+          (vswap! values pop)
+          (/ x prev))))))
+
+(defn roc-r-100 [p]
+  (comp
+    (roc-r p)
+    (map (partial * 100))))
+
 (defn trix [p]
   (comp
     (apply comp (repeatedly 3 #(ema p)))
