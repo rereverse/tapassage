@@ -107,3 +107,8 @@
           (vswap! values pop)
           (/ (- x prev) prev))))))
 
+(defn trix [p]
+  (comp
+    (apply comp (repeatedly 3 #(ema p)))
+    (roc-p 1)
+    (map (partial * 100))))

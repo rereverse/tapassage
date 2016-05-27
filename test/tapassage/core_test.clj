@@ -7,7 +7,7 @@
 (def ^:private total-periods 100)
 (def ^:private p 13)
 (def ^:private input (double-array (repeatedly total-periods rand)))
-(def ^:private epsilon 1e-14)
+(def ^:private epsilon 1e-13)
 
 (defn seq-approx= [xs ys]
   (every? (fn [[x y]] (approx= x y epsilon)) (map vector xs ys)))
@@ -35,3 +35,4 @@
 (test-indicator test-wma wma)
 (test-indicator test-roc roc)
 (test-indicator test-rocp roc-p rocP)
+(test-indicator test-trix trix)
