@@ -38,3 +38,5 @@
 (test-indicator test-rocr roc-r rocR)
 (test-indicator test-rocr100 roc-r-100 rocR100)
 (test-indicator test-trix trix)
+(test-indicator test-rsi rsi)
+

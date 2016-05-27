@@ -9,7 +9,7 @@
         ([] (xf))
         ([result] (xf result))
         ([result input]
-         (let [rs (map #(% nil input) ts)]
+         (let [rs (into [] (map #(% nil input)) ts)]
            (if (every? some? rs)
              (xf result rs)
              result)))))))
@@ -41,18 +41,19 @@
       (when (= (count @values) p)
         (/ @sum p)))))
 
-(defn ema [p]
-  (indicator
-    [prev-ema (volatile! [])
-     alpha (/ 2 (+ p 1))
-     ema-f (fn [x] (->> @prev-ema (- x) (* alpha) (+ @prev-ema)))]
-    (fn [x]
-      (if (vector? @prev-ema)
-        (do
-          (vswap! prev-ema conj x)
-          (when (= (count @prev-ema) p)
-            (vreset! prev-ema (/ (apply + @prev-ema) p))))
-        (vreset! prev-ema (ema-f x))))))
+(defn ema
+  ([p] (ema p (/ 2 (+ p 1))))
+  ([p alpha]
+   (indicator
+     [prev-ema (volatile! [])
+      ema-f (fn [x] (->> @prev-ema (- x) (* alpha) (+ @prev-ema)))]
+     (fn [x]
+       (if (vector? @prev-ema)
+         (do
+           (vswap! prev-ema conj x)
+           (when (= (count @prev-ema) p)
+             (vreset! prev-ema (/ (apply + @prev-ema) p))))
+         (vreset! prev-ema (ema-f x)))))))
 
 (defn dema [p]
   (comp
@@ -127,3 +128,32 @@
     (apply comp (repeatedly 3 #(ema p)))
     (roc-p 1)
     (map (partial * 100))))
+
+(def ^:private upward-change
+  (indicator
+    [prev (volatile! nil)]
+    (fn [x]
+      (let [p @prev]
+        (vreset! prev x)
+        (when (some? p)
+          (let [d (- x p)]
+            (if (pos? d) d 0)))))))
+
+(def ^:private downard-change
+  (indicator
+    [prev (volatile! nil)]
+    (fn [x]
+      (let [p @prev]
+        (vreset! prev x)
+        (when (some? p)
+          (let [d (- p x)]
+            (if (pos? d) d 0)))))))
+
+(defn rsi [p]
+  (let [alpha (/ 1 p)]
+    (comp
+      (xfhcomp
+        (comp upward-change (ema p alpha))
+        (comp downard-change (ema p alpha)))
+      (map #(/ (first %) (second %)))
+      (map #(- 100 (/ 100 (inc %)))))))
