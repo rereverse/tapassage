@@ -1,4 +1,5 @@
 (ns tapassage.core
+  (:require [clojure.algo.generic.math-functions :as math])
   (:import (clojure.lang PersistentQueue)))
 
 (defn- xfhcomp [& xfs]
@@ -118,7 +119,7 @@
           (vswap! values pop)
           (/ x prev))))))
 
-(defn roc-r-100 [p]
+(defn roc-r100 [p]
   (comp
     (roc-r p)
     (map (partial * 100))))
@@ -157,3 +158,22 @@
         (comp downard-change (ema p alpha)))
       (map #(/ (first %) (second %)))
       (map #(- 100 (/ 100 (inc %)))))))
+
+(defn mom [p]
+  (indicator
+    [values (volatile! PersistentQueue/EMPTY)]
+    (fn [x]
+      (vswap! values conj x)
+      (when (> (count @values) p)
+        (let [prev (first @values)]
+          (vswap! values pop)
+          (- x prev))))))
+
+;; tested manually, looks good
+(defn tsi [r s]
+  (comp
+    (mom 1)
+    (xfhcomp
+      (comp (ema r) (ema s))
+      (comp (map math/abs) (ema r) (ema s)))
+    (map #(* 100 (apply / %)))))
