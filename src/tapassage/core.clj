@@ -1,5 +1,6 @@
 (ns tapassage.core
-  (:require [clojure.algo.generic.math-functions :as math])
+  (:require [clojure.algo.generic.math-functions :as math]
+            [clatrix.core :as cla])
   (:import (clojure.lang PersistentQueue)))
 
 (defn- xfhcomp [& xfs]
@@ -177,3 +178,23 @@
       (comp (ema r) (ema s))
       (comp (map math/abs) (ema r) (ema s)))
     (map #(* 100 (apply / %)))))
+
+(defn lin-reg [p]
+  (indicator
+    [ys (volatile! PersistentQueue/EMPTY)
+     y-sum (volatile! 0)
+     xs (range p)
+     x-sum (apply + xs)
+     xx-sum (apply + (map #(* % %) xs))]
+    (fn [x]
+      (vswap! ys conj x)
+      (vswap! y-sum + x)
+      (when (> (count @ys) p)
+        (vswap! y-sum - (first @ys))
+        (vswap! ys pop))
+      (when (= (count @ys) p)
+        (let [xy-sum (apply + (map #(* %1 %2) xs @ys))
+              b (/ (- (* p xy-sum) (* x-sum @y-sum))
+                   (- (* p xx-sum) (math/pow x-sum 2)))
+              a (/ (- @y-sum (* b x-sum)) p)]
+          (+ a (* b (dec p))))))))

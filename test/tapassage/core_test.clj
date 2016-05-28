@@ -41,3 +41,4 @@
 (test-standard-ta-indicator trix)
 (test-standard-ta-indicator rsi)
 (test-standard-ta-indicator mom)
+(test-standard-ta-indicator lin-reg linearReg)
