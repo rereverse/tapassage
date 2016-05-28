@@ -179,7 +179,7 @@
       (comp (map math/abs) (ema r) (ema s)))
     (map #(* 100 (apply / %)))))
 
-(defn lin-reg [p]
+(defn lin-reg-coefs [p]
   (indicator
     [ys (volatile! PersistentQueue/EMPTY)
      y-sum (volatile! 0)
@@ -194,7 +194,33 @@
         (vswap! ys pop))
       (when (= (count @ys) p)
         (let [xy-sum (apply + (map #(* %1 %2) xs @ys))
-              b (/ (- (* p xy-sum) (* x-sum @y-sum))
-                   (- (* p xx-sum) (math/pow x-sum 2)))
-              a (/ (- @y-sum (* b x-sum)) p)]
-          (+ a (* b (dec p))))))))
+              s (/ (- (* p xy-sum) (* x-sum @y-sum))
+                   (- (* p xx-sum) (math/pow x-sum 2)))]
+          {:s s :i (/ (- @y-sum (* s x-sum)) p)})))))
+
+(defn lin-reg [p]
+  (comp
+    (lin-reg-coefs p)
+    (map (fn [{:keys [s i]}] (+ i (* s (dec p)))))))
+
+(defn lin-reg-angle [p]
+  (let [c (/ 180 Math/PI)]
+    (comp
+      (lin-reg-coefs p)
+      (map :s)
+      (map #(* c (Math/atan %))))))
+
+(defn std-dev [p]
+  (indicator
+    [values (volatile! PersistentQueue/EMPTY)
+     sum (volatile! 0)]
+    (fn [x]
+      (vswap! values conj x)
+      (vswap! sum + x)
+      (when (> (count @values) p)
+        (vswap! sum - (first @values))
+        (vswap! values pop))
+      (when (= (count @values) p)
+        (let [m (/ @sum p)]
+          (println m)
+          (math/sqrt (/ (apply + (->> @values (map (partial - m)) (map math/sqr))) p)))))))
