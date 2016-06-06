@@ -1,7 +1,6 @@
 (ns tapassage.core
-  (:require [clojure.algo.generic.math-functions :as math]
-            [clatrix.core :as cla])
-  (:import (clojure.lang PersistentQueue)))
+  (:require [clojure.algo.generic.math-functions :as math])
+  (:import [clojure.lang PersistentQueue]))
 
 (defn- xfhcomp [& xfs]
   (fn [xf]
@@ -222,5 +221,4 @@
         (vswap! values pop))
       (when (= (count @values) p)
         (let [m (/ @sum p)]
-          (println m)
           (math/sqrt (/ (apply + (->> @values (map (partial - m)) (map math/sqr))) p)))))))
