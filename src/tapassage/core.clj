@@ -2,7 +2,7 @@
   (:require [clojure.algo.generic.math-functions :as math])
   (:import [clojure.lang PersistentQueue]))
 
-(defn- xfhcomp [& xfs]
+(defn- xf-hcomp [& xfs]
   (fn [xf]
     (let [ixf (fn [_ input] input)
           ts (map #(% ixf) xfs)]
@@ -10,12 +10,12 @@
         ([] (xf))
         ([result] (xf result))
         ([result input]
-         (let [rs (into [] (map #(% nil input)) ts)]
+         (let [rs (mapv #(% nil input) ts)]
            (if (every? some? rs)
              (xf result rs)
              result)))))))
 
-(defmacro indicator
+(defmacro ^:private indicator
   ([trans-fn] `(indicator [] ~trans-fn))
   ([bindings trans-fn]
    `(fn [xf#]
@@ -26,8 +26,7 @@
           ([result# input#]
            (if-let [r# (~trans-fn input#)]
              (xf# result# r#)
-             result#))))))
-  {:private true})
+             result#)))))))
 
 (defn sma [p]
   (indicator
@@ -59,7 +58,7 @@
 (defn dema [p]
   (comp
     (ema p)
-    (xfhcomp
+    (xf-hcomp
       (map (partial * 2))
       (ema p))
     (map (partial apply -))))
@@ -67,10 +66,10 @@
 (defn tema [p]
   (comp
     (ema p)
-    (xfhcomp
+    (xf-hcomp
       (map identity)
       (ema p))
-    (xfhcomp
+    (xf-hcomp
       (comp (map first) (map (partial * 3)))
       (comp (map second) (map (partial * 3)))
       (comp (map second) (ema p)))
@@ -153,7 +152,7 @@
 (defn rsi [p]
   (let [alpha (/ 1 p)]
     (comp
-      (xfhcomp
+      (xf-hcomp
         (comp upward-change (ema p alpha))
         (comp downard-change (ema p alpha)))
       (map #(/ (first %) (second %)))
@@ -173,7 +172,7 @@
 (defn tsi [r s]
   (comp
     (mom 1)
-    (xfhcomp
+    (xf-hcomp
       (comp (ema r) (ema s))
       (comp (map math/abs) (ema r) (ema s)))
     (map #(* 100 (apply / %)))))
