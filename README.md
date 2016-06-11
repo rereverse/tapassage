@@ -5,7 +5,6 @@ indicators in famous TA-lib as transducers over input data feed.
 
 ## Usage
 
-**For John**
 [Simple moving average](http://www.investopedia.com/terms/s/sma.asp) of period 3 over few values:
 
     (into [] (sma 3) [1 5 9 12 4 3 5 6])
