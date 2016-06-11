@@ -15,7 +15,7 @@
              (xf result rs)
              result)))))))
 
-(defmacro ^:private indicator
+(defmacro indicator
   ([trans-fn] `(indicator [] ~trans-fn))
   ([bindings trans-fn]
    `(fn [xf#]
