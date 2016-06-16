@@ -12,7 +12,8 @@
           ([result#] (xf# result#))
           ([result# input#]
            (if-let [r# (~trans-fn input#)]
-             (xf# result# r#)
+             (if (reduced? r#)
+               r# (xf# result# r#))
              result#)))))))
 
 (defn hcomp [& xfs]
@@ -224,3 +225,21 @@
       (when (= (count @values) p)
         (let [m (/ @sum p)]
           (math/sqrt (/ (apply + (->> @values (map (partial - m)) (map math/sqr))) p)))))))
+
+(defn drop-down [m]
+  (indicator
+    [max (volatile! m)]
+    (fn [x]
+      (cond
+        (> x @max) (do (vreset! max x) 0)
+        (= x 0) 1
+        :else (- 1 (/ x @max))))))
+
+(defn maximum []
+  (indicator
+    [max (volatile! nil)]
+    (fn [x]
+      (if (or (nil? @max)
+              (> x @max))
+        (vreset! max x)
+        @max))))
